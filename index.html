@@ -1,0 +1,261 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Pacman Game</title>
+    <style>
+        body {
+            margin: 0;
+            background-color: #000;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            height: 100vh;
+            font-family: Arial, sans-serif;
+            color: white;
+            position: relative;
+            overflow: hidden;
+        }
+        
+        .background-container {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            z-index: -1;
+            overflow: hidden;
+            /* Fallback background */
+            background-color: #000066;
+            background-image: linear-gradient(45deg, #000066, #660066);
+        }
+        
+        .game-container {
+            position: relative;
+            z-index: 1;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+        }
+        
+        canvas {
+            border: 2px solid #2121ff;
+            margin-bottom: 20px;
+            background-color: rgba(0, 0, 0, 0.7);
+        }
+        
+        img.sprite {
+            display: none;
+        }
+        
+        @font-face {
+            font-family: 'Emulogic';
+            src: url('https://fonts.cdnfonts.com/css/emulogic') format('woff');
+            font-weight: normal;
+            font-style: normal;
+        }
+        
+        .instructions {
+            margin-top: 10px;
+            font-size: 14px;
+            background-color: rgba(0, 0, 0, 0.7);
+            padding: 5px 10px;
+            border-radius: 5px;
+        }
+        
+        /* Game Over Popup Styles */
+        .game-over-popup {
+            position: fixed;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            background-color: rgba(0, 0, 0, 0.95);
+            border: 5px solid #ffcc00;
+            border-radius: 10px;
+            padding: 30px;
+            text-align: center;
+            z-index: 9999;
+            box-shadow: 0 0 30px #ff0000, 0 0 50px #ffcc00;
+            display: none; /* Hidden by default */
+            min-width: 300px;
+            animation: popIn 0.5s forwards;
+        }
+        
+        @keyframes popIn {
+            0% { transform: translate(-50%, -50%) scale(0.5); opacity: 0; }
+            70% { transform: translate(-50%, -50%) scale(1.1); opacity: 1; }
+            100% { transform: translate(-50%, -50%) scale(1); opacity: 1; }
+        }
+        
+        .game-over-popup h2 {
+            color: #ff0000;
+            font-size: 36px;
+            margin-top: 0;
+            text-shadow: 2px 2px 4px #000;
+            font-family: 'Emulogic', sans-serif;
+            animation: pulse 1.5s infinite;
+        }
+        
+        @keyframes pulse {
+            0% { transform: scale(1); }
+            50% { transform: scale(1.1); }
+            100% { transform: scale(1); }
+        }
+        
+        .game-over-popup p {
+            color: #ffffff;
+            font-size: 20px;
+            margin: 20px 0;
+        }
+        
+        .game-over-popup button {
+            background-color: #ffcc00;
+            color: #000;
+            border: none;
+            border-radius: 5px;
+            padding: 12px 25px;
+            font-size: 18px;
+            cursor: pointer;
+            font-weight: bold;
+            margin-top: 10px;
+            transition: background-color 0.3s, transform 0.2s;
+        }
+        
+        .game-over-popup button:hover {
+            background-color: #ff9900;
+            transform: scale(1.05);
+        }
+    </style>
+</head>
+<body>
+    <div class="background-container">
+        <!-- Our JS will create the background here -->
+    </div>
+    
+    <div class="game-container">
+        <canvas id="canvas" width="500" height="500"></canvas>
+        <div class="instructions">Use arrow keys or WASD to move Pacman</div>
+    </div>
+    
+    <!-- Game Over Popup -->
+    <div id="gameOverPopup" class="game-over-popup">
+        <h2>GAME OVER</h2>
+        <p>Your score: <span id="finalScore">0</span></p>
+        <button id="restartButton">Play Again</button>
+    </div>
+    
+    <!-- We'll create the sprites in JavaScript -->
+    <img id="animation" class="sprite" alt="pacman sprite">
+    <img id="ghosts" class="sprite" alt="ghosts sprite">
+
+    <!-- Background script -->
+    <script src="pacman-bg.js"></script>
+    
+    <!-- Game scripts -->
+    <script>
+        // Create sprite images programmatically
+        window.onload = function() {
+            console.log("Window loaded");
+            
+            // Create a simple pacman sprite
+            const pacmanCanvas = document.createElement('canvas');
+            pacmanCanvas.width = 140; // 7 frames of 20px
+            pacmanCanvas.height = 20;
+            const pctx = pacmanCanvas.getContext('2d');
+            
+            // Draw pacman frames (yellow circles with different mouth angles)
+            for (let i = 0; i < 7; i++) {
+                pctx.fillStyle = 'yellow';
+                pctx.beginPath();
+                pctx.arc(i * 20 + 10, 10, 8, (i % 3) * 0.2, Math.PI * 2 - (i % 3) * 0.2);
+                pctx.lineTo(i * 20 + 10, 10);
+                pctx.fill();
+            }
+            
+            // Create ghost sprites
+            const ghostCanvas = document.createElement('canvas');
+            ghostCanvas.width = 176; // 2 columns
+            ghostCanvas.height = 232; // 2 rows
+            const gctx = ghostCanvas.getContext('2d');
+            
+            // Draw 4 ghosts with different colors
+            const colors = ['red', 'pink', 'cyan', 'orange'];
+            for (let row = 0; row < 2; row++) {
+                for (let col = 0; col < 2; col++) {
+                    const x = col * 88;
+                    const y = row * 116;
+                    const colorIndex = row * 2 + col;
+                    
+                    // Ghost body
+                    gctx.fillStyle = colors[colorIndex];
+                    gctx.beginPath();
+                    gctx.arc(x + 44, y + 44, 40, Math.PI, 0, false);
+                    gctx.lineTo(x + 84, y + 84);
+                    gctx.lineTo(x + 74, y + 74);
+                    gctx.lineTo(x + 64, y + 84);
+                    gctx.lineTo(x + 54, y + 74);
+                    gctx.lineTo(x + 44, y + 84);
+                    gctx.lineTo(x + 34, y + 74);
+                    gctx.lineTo(x + 24, y + 84);
+                    gctx.lineTo(x + 14, y + 74);
+                    gctx.lineTo(x + 4, y + 84);
+                    gctx.lineTo(x + 4, y + 44);
+                    gctx.fill();
+                    
+                    // Eyes
+                    gctx.fillStyle = 'white';
+                    gctx.beginPath();
+                    gctx.arc(x + 30, y + 40, 8, 0, Math.PI * 2);
+                    gctx.arc(x + 58, y + 40, 8, 0, Math.PI * 2);
+                    gctx.fill();
+                    
+                    gctx.fillStyle = 'blue';
+                    gctx.beginPath();
+                    gctx.arc(x + 33, y + 40, 4, 0, Math.PI * 2);
+                    gctx.arc(x + 61, y + 40, 4, 0, Math.PI * 2);
+                    gctx.fill();
+                }
+            }
+            
+            // Set the sprite images
+            document.getElementById('animation').src = pacmanCanvas.toDataURL();
+            document.getElementById('ghosts').src = ghostCanvas.toDataURL();
+            
+            // Check if loaded
+            const pacmanImg = document.getElementById("animation");
+            const ghostImg = document.getElementById("ghosts");
+            
+            pacmanImg.onload = function() { console.log("Pacman sprite loaded successfully"); };
+            ghostImg.onload = function() { console.log("Ghost sprite loaded successfully"); };
+            
+            // Make sure keyboard events are working
+            document.addEventListener("keydown", function(event) {
+                console.log("Key pressed:", event.keyCode);
+                // This will be handled by the game.js file, but this logs to confirm events are working
+            });
+            
+            // Setup restart button handler
+            document.getElementById('restartButton').addEventListener('click', function() {
+                // This will be handled in game.js
+                window.restartGame();
+                document.getElementById('gameOverPopup').style.display = 'none';
+            });
+
+            // For debugging - ensure the popup works by manually triggering it
+            window.testGameOver = function() {
+                document.getElementById('finalScore').innerText = "TEST";
+                document.getElementById('gameOverPopup').style.display = 'block';
+                console.log("Test popup triggered");
+            };
+
+            // Uncomment to test popup immediately
+            // setTimeout(window.testGameOver, 2000);
+        };
+    </script>
+    <script src="pacman.js"></script>
+    <script src="ghost.js"></script>
+    <script src="game.js"></script>
+</body>
+</html> 
