@@ -67,41 +67,26 @@
         
         /* Game Over Popup Styles */
         .game-over-popup {
-            position: fixed;
+            position: absolute;
             top: 50%;
             left: 50%;
             transform: translate(-50%, -50%);
-            background-color: rgba(0, 0, 0, 0.95);
-            border: 5px solid #ffcc00;
+            background-color: rgba(0, 0, 0, 0.9);
+            border: 3px solid #ffcc00;
             border-radius: 10px;
             padding: 30px;
             text-align: center;
-            z-index: 9999;
-            box-shadow: 0 0 30px #ff0000, 0 0 50px #ffcc00;
+            z-index: 10;
+            box-shadow: 0 0 20px #ffcc00;
             display: none; /* Hidden by default */
             min-width: 300px;
-            animation: popIn 0.5s forwards;
-        }
-        
-        @keyframes popIn {
-            0% { transform: translate(-50%, -50%) scale(0.5); opacity: 0; }
-            70% { transform: translate(-50%, -50%) scale(1.1); opacity: 1; }
-            100% { transform: translate(-50%, -50%) scale(1); opacity: 1; }
         }
         
         .game-over-popup h2 {
             color: #ff0000;
-            font-size: 36px;
+            font-size: 32px;
             margin-top: 0;
             text-shadow: 2px 2px 4px #000;
-            font-family: 'Emulogic', sans-serif;
-            animation: pulse 1.5s infinite;
-        }
-        
-        @keyframes pulse {
-            0% { transform: scale(1); }
-            50% { transform: scale(1.1); }
-            100% { transform: scale(1); }
         }
         
         .game-over-popup p {
@@ -242,16 +227,6 @@
                 window.restartGame();
                 document.getElementById('gameOverPopup').style.display = 'none';
             });
-
-            // For debugging - ensure the popup works by manually triggering it
-            window.testGameOver = function() {
-                document.getElementById('finalScore').innerText = "TEST";
-                document.getElementById('gameOverPopup').style.display = 'block';
-                console.log("Test popup triggered");
-            };
-
-            // Uncomment to test popup immediately
-            // setTimeout(window.testGameOver, 2000);
         };
     </script>
     <script src="pacman.js"></script>
